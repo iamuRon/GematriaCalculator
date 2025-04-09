@@ -3,19 +3,21 @@ from PyQt5.QtWidgets import (
     QPushButton, QVBoxLayout, QTextEdit,
     QTabWidget, QTableWidget, QTableWidgetItem, QHBoxLayout
 )
+from PyQt5.QtGui import QFont
 import sys
 import datetime
 import csv
 
-def get_linear_gematria(text):
-    linear_map = {
-        'א': 1,  'ב': 2,  'ג': 3,  'ד': 4,  'ה': 5,  'ו': 6,
-        'ז': 7,  'ח': 8,  'ט': 9,  'י': 10, 'כ': 11, 'ך': 11,
-        'ל': 12, 'מ': 13, 'ם': 13, 'נ': 14, 'ן': 14, 'ס': 15,
-        'ע': 16, 'פ': 17, 'ף': 17, 'צ': 18, 'ץ': 18, 'ק': 19,
-        'ר': 20, 'ש': 21, 'ת': 22
-    }
+# Define linear_map globally
+linear_map = {
+    'א': 1,  'ב': 2,  'ג': 3,  'ד': 4,  'ה': 5,  'ו': 6,
+    'ז': 7,  'ח': 8,  'ט': 9,  'י': 10, 'כ': 11, 'ך': 11,
+    'ל': 12, 'מ': 13, 'ם': 13, 'נ': 14, 'ן': 14, 'ס': 15,
+    'ע': 16, 'פ': 17, 'ף': 17, 'צ': 18, 'ץ': 18, 'ק': 19,
+    'ר': 20, 'ש': 21, 'ת': 22
+}
 
+def get_linear_gematria(text):
     total = 0
     for letter in text:
         if letter in linear_map:
@@ -98,25 +100,52 @@ class InfoTab(QWidget):
         layout.addWidget(label)
 
         table = QTableWidget()
-        linear_map = [
-            ('א', 1),  ('ב', 2),  ('ג', 3),  ('ד', 4),  ('ה', 5),  ('ו', 6),
-            ('ז', 7),  ('ח', 8),  ('ט', 9),  ('י', 10), ('כ', 11), ('ך', 11),
-            ('ל', 12), ('מ', 13), ('ם', 13), ('נ', 14), ('ן', 14), ('ס', 15),
-            ('ע', 16), ('פ', 17), ('ף', 17), ('צ', 18), ('ץ', 18), ('ק', 19),
-            ('ר', 20), ('ש', 21), ('ת', 22)
-        ]
 
         table.setRowCount(len(linear_map))
         table.setColumnCount(2)
         table.setHorizontalHeaderLabels(["Letter", "Value"])
 
-        for i, (letter, value) in enumerate(linear_map):
+        for i, (letter, value) in enumerate(linear_map.items()):
             table.setItem(i, 0, QTableWidgetItem(letter))
             table.setItem(i, 1, QTableWidgetItem(str(value)))
 
         table.resizeColumnsToContents()
         layout.addWidget(table)
         self.setLayout(layout)
+
+class KeyboardTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+
+        self.textbox = QTextEdit()
+        self.textbox.setFont(QFont("Arial", 16))
+        self.layout.addWidget(self.textbox)
+
+        self.keyboard_layout = QVBoxLayout()
+        row = QHBoxLayout()
+        self.letters = list(linear_map.keys())
+
+        for i, letter in enumerate(self.letters):
+            button = QPushButton(letter)
+            button.setFixedSize(40, 40)
+            button.clicked.connect(lambda _, l=letter: self.textbox.insertPlainText(l))
+            row.addWidget(button)
+            if (i + 1) % 10 == 0:
+                self.keyboard_layout.addLayout(row)
+                row = QHBoxLayout()
+        self.keyboard_layout.addLayout(row)
+        self.layout.addLayout(self.keyboard_layout)
+
+        self.copy_button = QPushButton("📋 Copy Text")
+        self.copy_button.clicked.connect(self.copy_to_clipboard)
+        self.layout.addWidget(self.copy_button)
+
+        self.setLayout(self.layout)
+
+    def copy_to_clipboard(self):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.textbox.toPlainText())
 
 class MainWindow(QTabWidget):
     def __init__(self):
@@ -126,11 +155,12 @@ class MainWindow(QTabWidget):
 
         self.gematria_tab = GematriaTab()
         self.info_tab = InfoTab()
+        self.keyboard_tab = KeyboardTab()
 
         self.addTab(self.gematria_tab, "Calculator")
         self.addTab(self.info_tab, "Info")
+        self.addTab(self.keyboard_tab, "Hebrew Keyboard")
 
-# Run the App
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
