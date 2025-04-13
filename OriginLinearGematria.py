@@ -45,9 +45,14 @@ class GematriaTab(QWidget):
         self.log_area.setReadOnly(True)
         self.save_button = QPushButton("💾 Save Logs to File")
 
+        # Keyboard UI
+        self.keyboard_layout = QVBoxLayout()
+        self.add_keyboard()
+
         layout = QVBoxLayout()
         layout.addWidget(self.input_label)
         layout.addWidget(self.input_field)
+        layout.addLayout(self.keyboard_layout)
         layout.addWidget(self.calculate_button)
         layout.addWidget(self.result_label)
         layout.addWidget(self.log_area)
@@ -57,6 +62,40 @@ class GematriaTab(QWidget):
 
         self.calculate_button.clicked.connect(self.calculate_gematria)
         self.save_button.clicked.connect(self.save_logs)
+        self.input_field.installEventFilter(self)
+
+    def add_keyboard(self):
+        rows = QVBoxLayout()
+        row = QHBoxLayout()
+        for i, letter in enumerate(linear_map.keys()):
+            button = QPushButton(letter)
+            button.setFixedSize(40, 40)
+            button.clicked.connect(lambda _, l=letter: self.input_field.insert(l))
+            row.addWidget(button)
+            if (i + 1) % 10 == 0:
+                rows.addLayout(row)
+                row = QHBoxLayout()
+        rows.addLayout(row)
+
+        # Add spacebar
+        space_row = QHBoxLayout()
+        space_row.addStretch()
+        space_button = QPushButton("␣")
+        space_button.setFixedSize(150, 40)
+        space_button.clicked.connect(lambda: self.input_field.insert(" "))
+        space_row.addWidget(space_button)
+        space_row.addStretch()
+        rows.addLayout(space_row)
+
+        self.keyboard_layout = rows
+
+    def eventFilter(self, obj, event):
+        from PyQt5.QtCore import QEvent, Qt
+        if obj == self.input_field and event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Space:
+                self.input_field.insert(" ")
+                return True
+        return super().eventFilter(obj, event)
 
     def calculate_gematria(self):
         text = self.input_field.text().strip()
@@ -90,6 +129,7 @@ class GematriaTab(QWidget):
             self.result_label.setText(f"✅ Logs saved as {txt_filename} + {csv_filename}")
         except Exception as e:
             self.result_label.setText(f"❌ Error saving: {e}")
+
 
 class InfoTab(QWidget):
     def __init__(self):
